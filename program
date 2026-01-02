@@ -1,0 +1,146 @@
+let player = [
+  {x:100,y:200,h:0,w:0,s:5,r:15}
+];
+const enemyTypes={
+  A:{s:2,d:60,r:15},
+  B:{s:1,d:50,r:15},
+  C:{s:3,d:100,r:15}
+};
+let enemy = [];
+let pvx;
+let pvy;
+let pv;
+let pdx;
+let pdy;
+let pnx;
+let pny;
+let pvx2;
+let pvy2;
+let pv2;
+let evx;
+let evy;
+let ev;
+let edx;
+let edy;
+let enx;
+let eny;
+let evx2;
+let evy2;
+let ev2;
+
+function setup(){
+  createCanvas(400,400);
+  strokeWeight(3);
+  spawnEnemy("A",300,100);
+  spawnEnemy("B",300,200);
+  spawnEnemy("C",300,300);
+  spawnEnemy("A",200,200);
+}
+
+function draw(){
+  background(220);
+  drawdraw();
+  drawplayermove();
+  drawenemymove(player[0].x,player[0].y);
+}
+
+function spawnEnemy(type,x,y){
+  enemy.push({x:x,y:y,type:type,...enemyTypes[type]});
+}
+
+function drawdraw(){
+  stroke(0)
+  fill(255);
+  ellipse(player[0].x,player[0].y,(player[0].r)*2);
+  for(let e=0;e<enemy.length;e++){
+    rect(enemy[e].x-enemy[e].r,enemy[e].y-enemy[e].r,(enemy[e].r)*2);
+  }
+  fill(255,0,0);
+  stroke(255,0,0);
+  ellipse(player[0].x+player[0].w,player[0].y+player[0].h,5);
+}
+
+function drawplayermove(){
+  pvx=0;
+  pvy=0;
+  if(keyIsDown(87)){
+    pvy-=1;
+  }
+  if(keyIsDown(83)){
+    pvy+=1;
+  }
+  if(keyIsDown(65)){
+    pvx-=1;
+  }
+  if(keyIsDown(68)){
+    pvx+=1
+  }
+  pv=Math.sqrt(pvx*pvx+pvy*pvy);
+  if(pv!=0){
+    pdx=pvx/pv;
+    pdy=pvy/pv;
+  }else{
+    pdx=0;
+    pdy=0;
+  }
+  pnx=player[0].x + pdx * player[0].s;
+  pny=player[0].y + pdy * player[0].s;
+  for(let e=0;e<enemy.length;e++){
+    pvx2=pnx-enemy[e].x
+    pvy2=pny-enemy[e].y
+    pv2=Math.sqrt(pvx2*pvx2+pvy2*pvy2)
+    if(pv2 < enemy[e].r + player[0].r){
+      player[0].x=player[0].x-(pdx/2)
+      player[0].y=player[0].y-(pdy/2)
+      return;
+    }
+  }
+    if(pnx+player[0].r<width&&pnx-player[0].r>=0){
+      player[0].x=pnx;
+    }
+    if(pny+player[0].r<height&&pny-player[0].r>=0){
+      player[0].y=pny;
+    }
+}
+
+function drawenemymove(px,py){
+  for(let e=0;e<enemy.length;e++){
+    let hit = true;
+    evx=px-enemy[e].x
+    evy=py-enemy[e].y
+    ev=Math.sqrt(evx*evx+evy*evy)
+    if(ev<0.00000000001){
+      continue;
+    }
+    edx=evx/ev
+    edy=evy/ev
+    if(ev>enemy[e].d){
+      enx=enemy[e].x + edx * enemy[e].s;
+      eny=enemy[e].y + edy * enemy[e].s;
+    }
+    else{
+      enx=enemy[e].x 
+      eny=enemy[e].y 
+    }
+    for(let i=0;i<enemy.length;i++){
+      if(e===i){
+        continue;
+      }
+      evx2=enx-enemy[i].x
+      evy2=eny-enemy[i].y
+      ev2=Math.sqrt(evx2*evx2+evy2*evy2)
+      if(ev2 <= enemy[e].r+enemy[i].r){
+        hit=false
+        break;
+      }
+    }
+    if(hit){
+      if(enx+enemy[e].r<width&&enx-enemy[e].r>0){
+        enemy[e].x=enx;
+      }else enemy[e].x=-enx/2
+      if(eny+enemy[e].r<height&&eny-enemy[e].r>0){
+        enemy[e].y=eny;
+      }else enemy[e].y=-eny/2
+    }
+  }
+}
