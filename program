@@ -7,6 +7,7 @@ const enemyTypes={
   C:{s:3,d:100,r:15}
 };
 let enemy = [];
+let tc = [];
 let pvx;
 let pvy;
 let pv;
@@ -27,6 +28,7 @@ let eny;
 let evx2;
 let evy2;
 let ev2;
+let hit;
 
 function setup(){
   createCanvas(400,400);
@@ -52,9 +54,9 @@ function drawdraw(){
   stroke(0)
   fill(255);
   ellipse(player[0].x,player[0].y,(player[0].r)*2);
-  for(let e=0;e<enemy.length;e++){
-    rect(enemy[e].x-enemy[e].r,enemy[e].y-enemy[e].r,(enemy[e].r)*2);
-  }
+  enemy.forEach(e =>{
+    rect(e.x-e.r,e.y-e.r,(e.r*2));
+  })
   fill(255,0,0);
   stroke(255,0,0);
   ellipse(player[0].x+player[0].w,player[0].y+player[0].h,5);
@@ -90,8 +92,6 @@ function drawplayermove(){
     pvy2=pny-enemy[e].y
     pv2=Math.sqrt(pvx2*pvx2+pvy2*pvy2)
     if(pv2 < enemy[e].r + player[0].r){
-      player[0].x=player[0].x-(pdx/2)
-      player[0].y=player[0].y-(pdy/2)
       return;
     }
   }
@@ -104,8 +104,8 @@ function drawplayermove(){
 }
 
 function drawenemymove(px,py){
+  tc = [];
   for(let e=0;e<enemy.length;e++){
-    let hit = true;
     evx=px-enemy[e].x
     evy=py-enemy[e].y
     ev=Math.sqrt(evx*evx+evy*evy)
@@ -122,12 +122,16 @@ function drawenemymove(px,py){
       enx=enemy[e].x 
       eny=enemy[e].y 
     }
+    tc.push({x:enx,y:eny})
+  }
+  for(let e=0;e<enemy.length;e++){
     for(let i=0;i<enemy.length;i++){
+      hit = true;
       if(e===i){
         continue;
       }
-      evx2=enx-enemy[i].x
-      evy2=eny-enemy[i].y
+      evx2=tc[e].x-tc[i].x
+      evy2=tc[e].y-tc[i].y
       ev2=Math.sqrt(evx2*evx2+evy2*evy2)
       if(ev2 <= enemy[e].r+enemy[i].r){
         hit=false
@@ -135,12 +139,12 @@ function drawenemymove(px,py){
       }
     }
     if(hit){
-      if(enx+enemy[e].r<width&&enx-enemy[e].r>0){
-        enemy[e].x=enx;
-      }else enemy[e].x=-enx/2
-      if(eny+enemy[e].r<height&&eny-enemy[e].r>0){
-        enemy[e].y=eny;
-      }else enemy[e].y=-eny/2
+      if(tc[e].x+enemy[e].r<width&&tc[e].x-enemy[e].r>0){
+        enemy[e].x=tc[e].x;
+      }else enemy[e].x=-tc[e].x/2
+     if(tc[e].y+enemy[e].r<height&&tc[e].y-enemy[e].r>0){
+        enemy[e].y=tc[e].y;
+      }else enemy[e].y=-tc[e].y/2
     }
   }
 }
