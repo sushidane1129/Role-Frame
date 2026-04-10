@@ -28,7 +28,6 @@ let eny;
 let evx2;
 let evy2;
 let ev2;
-let hit;
 
 function setup(){
   createCanvas(400,400);
@@ -125,8 +124,8 @@ function drawenemymove(px,py){
     tc.push({x:enx,y:eny})
   }
   for(let e=0;e<enemy.length;e++){
+    let hit = true;
     for(let i=0;i<enemy.length;i++){
-      hit = true;
       if(e===i){
         continue;
       }
