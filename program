@@ -170,11 +170,11 @@ function drawenemycontrol(){
       over=enemy[e].r+enemy[i].r-dv;
       nx=dx/dv
       ny=dy/dv
-      if(over>-5){
-       enemy[e].x-=nx*over/2;
-       enemy[e].y-=ny*over/2;
-       enemy[i].x+=nx*over/2;
-       enemy[i].y+=ny*over/2;
+      if(over>0){
+       enemy[e].x-=nx*over/1;
+       enemy[e].y-=ny*over/1;
+       enemy[i].x+=nx*over/1;
+       enemy[i].y+=ny*over/1;
       }
     }
   }
