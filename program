@@ -1,5 +1,5 @@
 let player = [
-  {x:100,y:200,h:0,w:0,s:5,r:15}
+  {x:100,y:200,s:5,r:15}
 ];
 const enemyTypes={
   A:{s:2,d:60,r:15},
@@ -11,8 +11,8 @@ let tc = [];
 let pvx;
 let pvy;
 let pv;
-let pdx;
-let pdy;
+let pdx=0;
+let pdy=0;
 let pnx;
 let pny;
 let pvx2;
@@ -49,6 +49,7 @@ function draw(){
   drawdraw();
   drawplayermove();
   drawenemymove(player[0].x,player[0].y);
+  drawenemyevasion();
   drawenemycontrol();
 }
 
@@ -65,7 +66,7 @@ function drawdraw(){
   })
   fill(255,0,0);
   stroke(255,0,0);
-  ellipse(player[0].x+player[0].w,player[0].y+player[0].h,5);
+  ellipse(player[0].x+pdx*3,player[0].y+pdy*3,5);
 }
 
 function drawplayermove(){
@@ -152,6 +153,10 @@ function drawenemymove(px,py){
   }
 }
 
+function drawenemyevasion(){
+  
+}
+
 function drawenemycontrol(){
   for(let e=0;e<enemy.length;e++){
    for(let i=e+1;i<enemy.length;i++){
@@ -168,10 +173,10 @@ function drawenemycontrol(){
       nx=dx/dv
       ny=dy/dv
       if(over>0){
-       enemy[e].x-=nx*over/1;
-       enemy[e].y-=ny*over/1;
-       enemy[i].x+=nx*over/1;
-       enemy[i].y+=ny*over/1;
+       enemy[e].x-=nx*over;
+       enemy[e].y-=ny*over;
+       enemy[i].x+=nx*over;
+       enemy[i].y+=ny*over;
       }
     }
   }
