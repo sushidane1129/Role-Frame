@@ -28,6 +28,12 @@ let eny;
 let evx2;
 let evy2;
 let ev2;
+let dx;
+let dy;
+let dv;
+let over;
+let nx;
+let ny;
 
 function setup(){
   createCanvas(400,400);
@@ -43,6 +49,7 @@ function draw(){
   drawdraw();
   drawplayermove();
   drawenemymove(player[0].x,player[0].y);
+  drawenemycontrol();
 }
 
 function spawnEnemy(type,x,y){
@@ -144,6 +151,31 @@ function drawenemymove(px,py){
      if(tc[e].y+enemy[e].r<height&&tc[e].y-enemy[e].r>0){
         enemy[e].y=tc[e].y;
       }else enemy[e].y=-tc[e].y/2
+    }
+  }
+}
+
+function drawenemycontrol(){
+  for(let e=0;e<enemy.length;e++){
+   for(let i=e+1;i<enemy.length;i++){
+      if(e===i){
+        continue;
+      }
+      dx=enemy[e].x-enemy[i].x
+      dy=enemy[e].y-enemy[i].y
+      dv=Math.sqrt(dx*dx+dy*dy)
+      if(dv===0){
+        continue;
+      }
+      over=enemy[e].r+enemy[i].r-dv;
+      nx=dx/dv
+      ny=dy/dv
+      if(over>-5){
+       enemy[e].x-=nx*over/2;
+       enemy[e].y-=ny*over/2;
+       enemy[i].x+=nx*over/2;
+       enemy[i].y+=ny*over/2;
+      }
     }
   }
 }
