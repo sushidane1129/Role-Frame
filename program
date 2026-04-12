@@ -1,39 +1,13 @@
 let player = [
-  {x:100,y:200,s:5,r:15}
+  {x:100,y:200,speed:5,radius:15}
 ];
 const enemyTypes={
-  A:{s:2,d:60,r:15},
-  B:{s:1,d:50,r:15},
-  C:{s:3,d:100,r:15}
+  A:{speed:2,distance:60,radius:15},
+  B:{speed:1,distance:50,radius:15},
+  C:{speed:3,distance:100,radius:15}
 };
 let enemy = [];
-let tc = [];
-let pvx;
-let pvy;
-let pv;
-let pdx=0;
-let pdy=0;
-let pnx;
-let pny;
-let pvx2;
-let pvy2;
-let pv2;
-let evx;
-let evy;
-let ev;
-let edx;
-let edy;
-let enx;
-let eny;
-let evx2;
-let evy2;
-let ev2;
-let dx;
-let dy;
-let dv;
-let over;
-let nx;
-let ny;
+let playeraim={x:0,y:0};
 
 function setup(){
   createCanvas(400,400);
@@ -60,58 +34,68 @@ function spawnEnemy(type,x,y){
 function drawdraw(){
   stroke(0)
   fill(255);
-  ellipse(player[0].x,player[0].y,(player[0].r)*2);
+  ellipse(player[0].x,player[0].y,(player[0].radius)*2);
   enemy.forEach(e =>{
-    rect(e.x-e.r,e.y-e.r,(e.r*2));
+    rect(e.x-e.radius,e.y-e.radius,(e.radius*2));
   })
   fill(255,0,0);
   stroke(255,0,0);
-  ellipse(player[0].x+pdx*3,player[0].y+pdy*3,5);
+  ellipse(player[0].x+playeraim.x*3,player[0].y+playeraim.y*3,5);
 }
 
 function drawplayermove(){
-  pvx=0;
-  pvy=0;
+  let playerinput={x:0,y:0,length:0}
+  let playermove={x:0,y:0}
+  let playerdis={x:0,y:0,length:0};
   if(keyIsDown(87)){
-    pvy-=1;
+    playerinput.y-=1;
   }
   if(keyIsDown(83)){
-    pvy+=1;
+    playerinput.y+=1;
   }
   if(keyIsDown(65)){
-    pvx-=1;
+    playerinput.x-=1;
   }
   if(keyIsDown(68)){
-    pvx+=1
+    playerinput.x+=1
   }
-  pv=Math.sqrt(pvx*pvx+pvy*pvy);
-  if(pv!=0){
-    pdx=pvx/pv;
-    pdy=pvy/pv;
+  playerinput.length=Math.sqrt(playerinput.x*playerinput.x+playerinput.y*playerinput.y);
+  if(playerinput.length!=0){
+    playeraim.x=playerinput.x/playerinput.length;
+    playeraim.y=playerinput.y/playerinput.length;
   }else{
-    pdx=0;
-    pdy=0;
+    playeraim.x=0;
+    playeraim.y=0;
   }
-  pnx=player[0].x + pdx * player[0].s;
-  pny=player[0].y + pdy * player[0].s;
+  playermove.x=player[0].x+playeraim.x*player[0].speed;
+  playermove.y=player[0].y+playeraim.y*player[0].speed;
   for(let e=0;e<enemy.length;e++){
-    pvx2=pnx-enemy[e].x
-    pvy2=pny-enemy[e].y
-    pv2=Math.sqrt(pvx2*pvx2+pvy2*pvy2)
-    if(pv2 < enemy[e].r + player[0].r){
+    playerdis.x=playermove.x-enemy[e].x
+    playerdis.y=playermove.y-enemy[e].y
+    playerdis.length=Math.sqrt(playerdis.x*playerdis.x+playerdis.y*playerdis.y)
+    if(playerdis.length<enemy[e].radius+player[0].radius){
       return;
     }
   }
-    if(pnx+player[0].r<width&&pnx-player[0].r>=0){
-      player[0].x=pnx;
+    if(playermove.x+player[0].radius<width&&playermove.x-player[0].radius>=0){
+      player[0].x=playermove.x;
     }
-    if(pny+player[0].r<height&&pny-player[0].r>=0){
-      player[0].y=pny;
+    if(playermove.y+player[0].radius<height&&playermove.y-player[0].radius>=0){
+      player[0].y=playermove.y;
     }
 }
 
 function drawenemymove(px,py){
-  tc = [];
+  let tc = [];
+  let evx;
+  let evy;
+  let ev;
+  let enemyinput={x:0,y:0};
+  let enx;
+  let eny;
+  let evx2;
+  let evy2;
+  let ev2;
   for(let e=0;e<enemy.length;e++){
     evx=px-enemy[e].x
     evy=py-enemy[e].y
@@ -119,11 +103,11 @@ function drawenemymove(px,py){
     if(ev<0.00000000001){
       continue;
     }
-    edx=evx/ev
-    edy=evy/ev
-    if(ev>enemy[e].d){
-      enx=enemy[e].x + edx * enemy[e].s;
-      eny=enemy[e].y + edy * enemy[e].s;
+    enemyinput.x=evx/ev
+    enemyinput.y=evy/ev
+    if(ev>enemy[e].distance){
+      enx=enemy[e].x+enemyinput.x*enemy[e].speed;
+      eny=enemy[e].y+enemyinput.y*enemy[e].speed;
     }
     else{
       enx=enemy[e].x 
@@ -139,13 +123,13 @@ function drawenemymove(px,py){
       evx2=tc[e].x-tc[i].x
       evy2=tc[e].y-tc[i].y
       ev2=Math.sqrt(evx2*evx2+evy2*evy2)
-      if(ev2 <= enemy[e].r+enemy[i].r){
+      if(ev2 <= enemy[e].radius+enemy[i].radius){
         break;
       }else{
-      if(tc[e].x+enemy[e].r<width&&tc[e].x-enemy[e].r>0){
+      if(tc[e].x+enemy[e].radius<width&&tc[e].x-enemy[e].radius>0){
         enemy[e].x=tc[e].x;
       }else enemy[e].x=-tc[e].x/2
-     if(tc[e].y+enemy[e].r<height&&tc[e].y-enemy[e].r>0){
+     if(tc[e].y+enemy[e].radius<height&&tc[e].y-enemy[e].radius>0){
         enemy[e].y=tc[e].y;
       }else enemy[e].y=-tc[e].y/2
        }
@@ -158,25 +142,30 @@ function drawenemyevasion(){
 }
 
 function drawenemycontrol(){
+  let diff={x:0,y:0};
+  let dist;
+  let over;
+  let nx;
+  let ny;
   for(let e=0;e<enemy.length;e++){
-   for(let i=e+1;i<enemy.length;i++){
+    for(let i=e+1;i<enemy.length;i++){
       if(e===i){
         continue;
       }
-      dx=enemy[e].x-enemy[i].x
-      dy=enemy[e].y-enemy[i].y
-      dv=Math.sqrt(dx*dx+dy*dy)
-      if(dv===0){
+      diff.x=enemy[e].x-enemy[i].x
+      diff.y=enemy[e].y-enemy[i].y
+      dist=Math.sqrt(diff.x*diff.x+diff.y*diff.y)
+      if(dist===0){
         continue;
       }
-      over=enemy[e].r+enemy[i].r-dv;
-      nx=dx/dv
-      ny=dy/dv
+      over=enemy[e].radius+enemy[i].radius-dist;
+      nx=diff.x/dist
+      ny=diff.y/dist
       if(over>0){
-       enemy[e].x-=nx*over;
-       enemy[e].y-=ny*over;
-       enemy[i].x+=nx*over;
-       enemy[i].y+=ny*over;
+        enemy[e].x-=nx*over;
+        enemy[e].y-=ny*over;
+        enemy[i].x+=nx*over;
+        enemy[i].y+=ny*over;
       }
     }
   }
