@@ -92,8 +92,8 @@ function drawenemymove(playerx,playery){
   let enemymove={x:0,y:0};
   let distancetoenemy={x:0,y:0,length:0}
   for(let e=0;e<enemy.length;e++){
-    distancetoplayer.x=player.x-enemy[e].x
-    distancetoplayer.y=player.y-enemy[e].y
+    distancetoplayer.x=playerx-enemy[e].x
+    distancetoplayer.y=playery-enemy[e].y
     distancetoplayer.length=Math.sqrt(distancetoplayer.x*distancetoplayer.x+distancetoplayer.y*distancetoplayer.y)
     if(distancetoplayer.length<0.00000000001){
       continue;
