@@ -46,7 +46,7 @@ function drawdraw(){
 function drawplayermove(){
   let playerinput={x:0,y:0,length:0}
   let playermove={x:0,y:0}
-  let playerdis={x:0,y:0,length:0};
+  let distance={x:0,y:0,length:0};
   if(keyIsDown(87)){
     playerinput.y-=1;
   }
@@ -70,10 +70,10 @@ function drawplayermove(){
   playermove.x=player[0].x+playeraim.x*player[0].speed;
   playermove.y=player[0].y+playeraim.y*player[0].speed;
   for(let e=0;e<enemy.length;e++){
-    playerdis.x=playermove.x-enemy[e].x
-    playerdis.y=playermove.y-enemy[e].y
-    playerdis.length=Math.sqrt(playerdis.x*playerdis.x+playerdis.y*playerdis.y)
-    if(playerdis.length<enemy[e].radius+player[0].radius){
+    distance.x=playermove.x-enemy[e].x
+    distance.y=playermove.y-enemy[e].y
+    distance.length=Math.sqrt(distance.x*distance.x+distance.y*distance.y)
+    if(distance.length<enemy[e].radius+player[0].radius){
       return;
     }
   }
@@ -85,53 +85,48 @@ function drawplayermove(){
     }
 }
 
-function drawenemymove(px,py){
-  let tc = [];
-  let evx;
-  let evy;
-  let ev;
-  let enemyinput={x:0,y:0};
-  let enx;
-  let eny;
-  let evx2;
-  let evy2;
-  let ev2;
+function drawenemymove(playerx,playery){
+  let nextpositions=[];
+  let distancetoplayer={x:0,y:0,length:0}
+  let enemyaim={x:0,y:0};
+  let enemymove={x:0,y:0};
+  let distancetoenemy={x:0,y:0,length:0}
   for(let e=0;e<enemy.length;e++){
-    evx=px-enemy[e].x
-    evy=py-enemy[e].y
-    ev=Math.sqrt(evx*evx+evy*evy)
-    if(ev<0.00000000001){
+    distancetoplayer.x=player.x-enemy[e].x
+    distancetoplayer.y=player.y-enemy[e].y
+    distancetoplayer.length=Math.sqrt(distancetoplayer.x*distancetoplayer.x+distancetoplayer.y*distancetoplayer.y)
+    if(distancetoplayer.length<0.00000000001){
       continue;
     }
-    enemyinput.x=evx/ev
-    enemyinput.y=evy/ev
-    if(ev>enemy[e].distance){
-      enx=enemy[e].x+enemyinput.x*enemy[e].speed;
-      eny=enemy[e].y+enemyinput.y*enemy[e].speed;
+    enemyaim.x=distancetoplayer.x/distancetoplayer.length
+    enemyaim.y=distancetoplayer.y/distancetoplayer.length
+    if(distancetoplayer.length>enemy[e].distance){
+      enemymove.x=enemy[e].x+enemyaim.x*enemy[e].speed;
+      enemymove.y=enemy[e].y+enemyaim.y*enemy[e].speed;
     }
     else{
-      enx=enemy[e].x 
-      eny=enemy[e].y 
+      enemymove.x=enemy[e].x 
+      enemymove.y=enemy[e].y 
     }
-    tc.push({x:enx,y:eny})
+    nextpositions.push({x:enemymove.x,y:enemymove.y})
   }
   for(let e=0;e<enemy.length;e++){
     for(let i=0;i<enemy.length;i++){
       if(e===i){
         continue;
       }
-      evx2=tc[e].x-tc[i].x
-      evy2=tc[e].y-tc[i].y
-      ev2=Math.sqrt(evx2*evx2+evy2*evy2)
-      if(ev2 <= enemy[e].radius+enemy[i].radius){
+      distancetoenemy.x=nextpositions[e].x-nextpositions[i].x
+      distancetoenemy.y=nextpositions[e].y-nextpositions[i].y
+      distancetoenemy.length=Math.sqrt(distancetoenemy.x*distancetoenemy.x+distancetoenemy.y*distancetoenemy.y)
+      if(distancetoenemy.length<=enemy[e].radius+enemy[i].radius){
         break;
       }else{
-      if(tc[e].x+enemy[e].radius<width&&tc[e].x-enemy[e].radius>0){
-        enemy[e].x=tc[e].x;
-      }else enemy[e].x=-tc[e].x/2
-     if(tc[e].y+enemy[e].radius<height&&tc[e].y-enemy[e].radius>0){
-        enemy[e].y=tc[e].y;
-      }else enemy[e].y=-tc[e].y/2
+      if(nextpositions[e].x+enemy[e].radius<width&&nextpositions[e].x-enemy[e].radius>0){
+        enemy[e].x=nextpositions[e].x;
+      }else enemy[e].x=-nextpositions[e].x/2
+     if(nextpositions[e].y+enemy[e].radius<height&&nextpositions[e].y-enemy[e].radius>0){
+        enemy[e].y=nextpositions[e].y;
+      }else enemy[e].y=-nextpositions[e].y/2
        }
     }
   }
@@ -143,10 +138,9 @@ function drawenemyevasion(){
 
 function drawenemycontrol(){
   let diff={x:0,y:0};
-  let dist;
+  let distance;
   let over;
-  let nx;
-  let ny;
+  let aim={x:0,y:0};
   for(let e=0;e<enemy.length;e++){
     for(let i=e+1;i<enemy.length;i++){
       if(e===i){
@@ -154,18 +148,18 @@ function drawenemycontrol(){
       }
       diff.x=enemy[e].x-enemy[i].x
       diff.y=enemy[e].y-enemy[i].y
-      dist=Math.sqrt(diff.x*diff.x+diff.y*diff.y)
-      if(dist===0){
+      distance=Math.sqrt(diff.x*diff.x+diff.y*diff.y)
+      if(distance===0){
         continue;
       }
-      over=enemy[e].radius+enemy[i].radius-dist;
-      nx=diff.x/dist
-      ny=diff.y/dist
+      over=enemy[e].radius+enemy[i].radius-distance;
+      aim.x=diff.x/distance
+      aim.y=diff.y/distance
       if(over>0){
-        enemy[e].x-=nx*over;
-        enemy[e].y-=ny*over;
-        enemy[i].x+=nx*over;
-        enemy[i].y+=ny*over;
+        enemy[e].x-=aim.x*over;
+        enemy[e].y-=aim.y*over;
+        enemy[i].x+=aim.x*over;
+        enemy[i].y+=aim.y*over;
       }
     }
   }
