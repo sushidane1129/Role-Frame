@@ -1,171 +1,431 @@
-let player = [
-  {x:100,y:200,speed:5,radius:15}
+const width=600;
+const height=600;
+const terrain=[
+  [{x:2400,y:height-2400},{x:0,y:height-2400},{x:0,y:height-2370},{x:2400,y:height-2370}],
+  [{x:30,y:height-2400},{x:0,y:height-2400},{x:0,y:height},{x:30,y:height}],
+  [{x:2400,y:height-30},{x:0,y:height-30},{x:0,y:height},{x:2400,y:height}],
+  [{x:2400,y:height-2400},{x:2370,y:height-2400},{x:2370,y:height},{x:2400,y:height}],
+  [{x:200,y:height-2220},{x:180,y:height-2220},{x:180,y:height-500},{x:200,y:height-500}],
+  [{x:2220,y:height-200},{x:500,y:height-200},{x:500,y:height-180},{x:2220,y:height-180}],
+  [{x:2240,y:height-1900},{x:2200,y:height-1900},{x:2220,y:height-180},{x:2240,y:height-180}],
+  [{x:1900,y:height-2220},{x:180,y:height-2220},{x:180,y:height-2200},{x:1900,y:height-2200}],
+  [{x:1900,y:height-2200},{x:200,y:height-500},{x:220,y:height-480},{x:1920,y:height-2180}],
+  [{x:2180,y:height-1920},{x:480,y:height-220},{x:500,y:height-200},{x:2200,y:height-1900}]
 ];
+let cameramove={x:0,y:0};
+const gridSize = 30;
+const cols=width/gridSize;
+const rows=height/gridSize;
+let grid=[];
+let player=[
+  {x:300,y:300,speed:5,radius:15,Maxhp:10,hp:10,directionx:0,directiony:-1,invincible:30}
+];
+let enemy=[];
 const enemyTypes={
-  A:{speed:2,distance:60,radius:15},
-  B:{speed:1,distance:50,radius:15},
-  C:{speed:3,distance:100,radius:15}
+  A:{speed:2,distance:60,radius:15,Maxhp:3,invincibletime:30},
+  B:{speed:1,distance:50,radius:15,Maxhp:1,invincibletime:40},
+  C:{speed:3,distance:100,radius:15,Maxhp:2,invincibletime:60}
 };
-let enemy = [];
-let playeraim={x:0,y:0};
+let directiontimecounter=0;
+let saveplayerdirection={x:0,y:-1};
+let playerattack1timecounter=0;
+let enemyattack1timecounter=[];
+let playerattack1=null;
+let enemyattack1=[];
 
 function setup(){
-  createCanvas(400,400);
+  createCanvas(width,height);
   strokeWeight(3);
-  spawnEnemy("A",300,100);
-  spawnEnemy("B",300,200);
-  spawnEnemy("C",300,300);
-  spawnEnemy("A",200,200);
+  spawnEnemy("A",500,100);
+  spawnEnemy("B",500,200);
+  spawnEnemy("C",600,150);
+  spawnEnemy("A",400,200);
+  creategrid();
 }
 
 function draw(){
   background(220);
+  cameramove.x=player[0].x-width/2;
+  cameramove.y=player[0].y-height/2;
+  getPlayerDirection();
   drawdraw();
+  drawdetectgrid();
   drawplayermove();
-  drawenemymove(player[0].x,player[0].y);
-  drawenemyevasion();
-  drawenemycontrol();
+  drawenemymove();
+  drawplayerattack();
+  drawenemyattack();
+  drawplayerhit();
+  drawenemyhit();
+  drawsplicebullet();
 }
 
 function spawnEnemy(type,x,y){
-  enemy.push({x:x,y:y,type:type,...enemyTypes[type]});
+  enemy.push({x:x,y:y,type:type,hp:enemyTypes[type].Maxhp,invincible:0,...enemyTypes[type]});
+  enemyattack1timecounter.push(0);
+}
+
+function normalize(x,y){
+  let length=Math.sqrt(x*x+y*y);
+  if(length<0.00001) {
+    return {x:0, y:0,length:0}; 
+  }
+  return {x:x/length,y:y/length,length:length};
+}
+
+function getPlayerAim(a,b,c,d){
+  let x = 0;
+  let y = 0;
+  if(keyIsDown(a)){
+    y-=1;
+  }
+  if(keyIsDown(b)){
+    y+=1;
+  }
+  if(keyIsDown(c)){
+    x-=1;
+  }
+  if(keyIsDown(d)){
+    x+=1;
+  }
+  return normalize(x, y);
+}
+
+function getEnemyAim(enemyx,enemyy,playerx,playery){
+  let distance={x:playerx-enemyx,y:playery-enemyy};
+  return normalize(distance.x,distance.y)
+}
+
+function getPlayerDirection(){
+  let x=0;
+  let y=0;
+  if(keyIsDown(87))y=-1;
+  if(keyIsDown(83))y=1;
+  if(keyIsDown(65))x=-1;
+  if(keyIsDown(68))x=1;
+  if(x==0&&y==0) return;
+  saveplayerdirection.x=x;
+  saveplayerdirection.y=y;
+}
+
+function hitTerrain(circle){ 
+  let permission=true;
+  terrain.forEach(t=>{ 
+    for(let i=0;i<4;i++){
+      let p1=t[i]; let p2=t[(i+1)%4];
+      if(circle.x<=t[3].x&&circle.x>=t[1].x&&circle.y<=t[2].y&&circle.y>=t[0].y){
+        if(p1.x-p2.x==0){
+          if(circle.x<p1.x+circle.radius&&circle.x>p1.x-circle.radius){
+            permission=false;
+          } 
+        } else {
+          let a=(p1.y-p2.y)/(p1.x-p2.x);
+          if(a===0){
+            if(circle.y<p1.y+circle.radius&&circle.y>p1.y-circle.radius){ 
+              permission=false;
+            } 
+          } 
+          if(a>0){
+            if(circle.y+circle.x*a<p1.x+p1.y+circle.radius&&circle.y+circle.x*a>p1.x+p1.y-circle.radius){
+              permission=false;
+            }
+          }
+          if(a<0){
+            if(circle.y+circle.x*a<-p1.x+p1.y+circle.radius&&circle.y+circle.x*a>-p1.x+p1.y-circle.radius){
+              permission=false;
+            }
+          }
+        }
+      }
+    }
+  })
+  return(permission);
+}
+
+function creategrid(){
+  for(let n=1;n<cols+1;n++){
+    for(let m=1;m<rows+1;m++){
+      let inside=false;
+      Px=n*gridSize*3/2;
+      Py=m*gridSize*3/2;
+      for(let t=0;t<terrain.length;t++){
+        let Frag=true;
+        for(let i=0;i<4;i++){
+          let A=terrain[t][i];
+          let B=terrain[t][(i+1)%4];
+          if((B.x-A.x)*(Py-A.y)-(B.y-A.y)*(Px-A.x)<0){
+            Frag=false;
+          }
+        }
+        if(Frag) inside=true;
+      }
+      if(!inside){
+        grid.push(0);
+      }
+      else grid.push(1);
+    }
+  }
 }
 
 function drawdraw(){
+  strokeWeight(3);
   stroke(0)
   fill(255);
-  ellipse(player[0].x,player[0].y,(player[0].radius)*2);
-  enemy.forEach(e =>{
-    rect(e.x-e.radius,e.y-e.radius,(e.radius*2));
+  let aim=getPlayerAim(87,83,65,68);
+  if(aim.length>0){
+    if(saveplayerdirection.x!=0&&saveplayerdirection.y!=0){
+      player[0].directionx=saveplayerdirection.x;
+      player[0].directiony=saveplayerdirection.y;
+      directiontimecounter = 0;
+    }
+    else{
+      directiontimecounter++;
+      if(directiontimecounter>=10){
+        player[0].directionx=saveplayerdirection.x;
+        player[0].directiony=saveplayerdirection.y;
+      }
+    }
+  }
+  if(player[0].invincible===0) fill(255);
+  else fill(255,255,255,50);
+  ellipse(player[0].x-cameramove.x,player[0].y-cameramove.y,(player[0].radius)*2);
+  enemy.forEach(e=>{
+    if(e.invincible===0) fill(255);
+    else fill(255,255,255,50);
+    rect(e.x-e.radius-cameramove.x,e.y-e.radius-cameramove.y,(e.radius*2));
   })
   fill(255,0,0);
   stroke(255,0,0);
-  ellipse(player[0].x+playeraim.x*3,player[0].y+playeraim.y*3,5);
+  ellipse(player[0].x-cameramove.x+player[0].directionx*3,player[0].y-cameramove.y+player[0].directiony*3,5);
+  stroke(0);
+  fill(165,42,42)
+  stroke(0);
+  strokeWeight(3);
+  fill(165,42,42);
+  for(const polygon of terrain){
+    beginShape();
+    for(const point of polygon){
+      vertex(point.x-cameramove.x,point.y-cameramove.y);
+    }
+    endShape(CLOSE);
+  }
+}
+
+function drawdetectgrid(){
+  let playergrid=floor(player[0].x/gridSize)+floor(player[0].y/gridSize)*cols;
+  let griddistance=[];
+  //ここでプレイヤーから地形を除く全グリッドへの所要数を調べる
+  for(let i=0;i<grid.length;i++){
+    if(grid[playergrid+1]==0) {
+      griddistance.push(0);
+      if(grid[playergrid+2]==0) griddistance.push(0)
+      else if(grid[playergrid-1]==0) griddistance.push(0)
+    }
+  }
+
+  
+  for(let i=0;i<grid.length;i++){
+    for(let n=0;n<cols;n++){
+      for(let m=0;m<rols;m++){
+       if(grid[n*m+m]==0) griddistance.push(n*m);
+      }
+    }
+  }
+  
+  
+  for(let e=0;e<enemy.length;e++){
+    let enemygrid=floor(enemy[e].x/gridSize)+floor(enemy[e].y/gridSize)*cols;
+    //先ほどのデータからどのマスに進むかを判断する
+  }
 }
 
 function drawplayermove(){
-  let playerinput={x:0,y:0,length:0}
-  let playermove={x:0,y:0}
-  let distance={x:0,y:0,length:0};
-  if(keyIsDown(87)){
-    playerinput.y-=1;
-  }
-  if(keyIsDown(83)){
-    playerinput.y+=1;
-  }
-  if(keyIsDown(65)){
-    playerinput.x-=1;
-  }
-  if(keyIsDown(68)){
-    playerinput.x+=1
-  }
-  playerinput.length=Math.sqrt(playerinput.x*playerinput.x+playerinput.y*playerinput.y);
-  if(playerinput.length!=0){
-    playeraim.x=playerinput.x/playerinput.length;
-    playeraim.y=playerinput.y/playerinput.length;
-  }else{
-    playeraim.x=0;
-    playeraim.y=0;
-  }
-  playermove.x=player[0].x+playeraim.x*player[0].speed;
-  playermove.y=player[0].y+playeraim.y*player[0].speed;
-  for(let e=0;e<enemy.length;e++){
-    distance.x=playermove.x-enemy[e].x
-    distance.y=playermove.y-enemy[e].y
-    distance.length=Math.sqrt(distance.x*distance.x+distance.y*distance.y)
-    if(distance.length<enemy[e].radius+player[0].radius){
-      return;
-    }
-  }
-    if(playermove.x+player[0].radius<width&&playermove.x-player[0].radius>=0){
-      player[0].x=playermove.x;
-    }
-    if(playermove.y+player[0].radius<height&&playermove.y-player[0].radius>=0){
-      player[0].y=playermove.y;
-    }
+  let aim=getPlayerAim(87,83,65,68);
+  player[0].x+=aim.x*player[0].speed;
+  player[0].y+=aim.y*player[0].speed;
+  playercontrol();
 }
 
-function drawenemymove(playerx,playery){
-  let nextpositions=[];
-  let distancetoplayer={x:0,y:0,length:0}
-  let enemyaim={x:0,y:0};
-  let enemymove={x:0,y:0};
-  let distancetoenemy={x:0,y:0,length:0}
-  let Canmove=true;
+function drawenemymove(){
   for(let e=0;e<enemy.length;e++){
-    distancetoplayer.x=playerx-enemy[e].x
-    distancetoplayer.y=playery-enemy[e].y
-    distancetoplayer.length=Math.sqrt(distancetoplayer.x*distancetoplayer.x+distancetoplayer.y*distancetoplayer.y)
-    if(distancetoplayer.length<0.00000000001){
-      nextpositions.push({x:enemy[e].x,y:enemy[e].y})
-      continue;
-    }
-    enemyaim.x=distancetoplayer.x/distancetoplayer.length
-    enemyaim.y=distancetoplayer.y/distancetoplayer.length
-    if(distancetoplayer.length>enemy[e].distance){
-      enemymove.x=enemy[e].x+enemyaim.x*enemy[e].speed;
-      enemymove.y=enemy[e].y+enemyaim.y*enemy[e].speed;
-    }
-    else{
-      enemymove.x=enemy[e].x 
-      enemymove.y=enemy[e].y 
-    }
-    nextpositions.push({x:enemymove.x,y:enemymove.y})
-  }
-  for(let e=0;e<enemy.length;e++){
-    Canmove=true;
-    for(let i=0;i<enemy.length;i++){
-      if(e===i){
-        continue;
+    let forward=getEnemyAim(enemy[e].x,enemy[e].y,player[0].x,player[0].y);
+    let avoid={x:0,y:0};
+    let view=100;
+    let strength;
+    let terraindistance;
+    if(forward.length>enemy[e].distance){
+      for(let i=0;i<enemy.length;i++){
+        if(e===i) continue;
+        let enemydistance=normalize(enemy[i].x-enemy[e].x,enemy[i].y-enemy[e].y);
+        if(enemydistance.length>view) continue;
+        if(forward.x*enemydistance.x+forward.y*enemydistance.y>0.5){
+          strength=((view-enemydistance.length)/view);
+          avoid.x-=enemydistance.x*strength;
+          avoid.y-=enemydistance.y*strength;
+        }
       }
-      distancetoenemy.x=nextpositions[e].x-nextpositions[i].x
-      distancetoenemy.y=nextpositions[e].y-nextpositions[i].y
-      distancetoenemy.length=Math.sqrt(distancetoenemy.x*distancetoenemy.x+distancetoenemy.y*distancetoenemy.y)
-      if(distancetoenemy.length<=enemy[e].radius+enemy[i].radius){
-        Canmove=false;
-        break;
-      }
-    }
-    if(Canmove){
-      if(nextpositions[e].x+enemy[e].radius<width&&nextpositions[e].x-enemy[e].radius>0){
-        enemy[e].x=nextpositions[e].x;
-      }else enemy[e].x=-nextpositions[e].x/2
-      if(nextpositions[e].y+enemy[e].radius<height&&nextpositions[e].y-enemy[e].radius>0){
-        enemy[e].y=nextpositions[e].y;
-      }else enemy[e].y=-nextpositions[e].y/2
+      let move={x:forward.x+avoid.x*1.5,y:forward.y+avoid.y*1.5};
+      let normal=normalize(move.x,move.y);
+      enemy[e].x+=normal.x*enemy[e].speed;
+      enemy[e].y+=normal.y*enemy[e].speed;
+      enemycontrol(e,normal);
     }
   }
 }
 
-function drawenemyevasion(){
-  
-}
-
-function drawenemycontrol(){
-  let diff={x:0,y:0};
-  let distance=0;
+function playercontrol(){
   let over=0;
-  let aim={x:0,y:0};
-  for(let e=0;e<enemy.length;e++){
+  for(let k=0;k<3;k++){
+    for(let e=0;e<enemy.length;e++){
+      let aim=getEnemyAim(player[0].x,player[0].y,enemy[e].x,enemy[e].y);
+      over=player[0].radius+enemy[e].radius-aim.length;
+      if(over>0){
+        enemy[e].x+=aim.x*over/2;
+        enemy[e].y+=aim.y*over/2;
+        player[0].x-=aim.x*over/2;
+        player[0].y-=aim.y*over/2;
+      }
+    }
+  }
+  let permission=hitTerrain(player[0]);
+  if(!permission){
+    player[0].x-=saveplayerdirection.x*player[0].speed;
+    player[0].y-=saveplayerdirection.y*player[0].speed;
+  }
+}
+
+function enemycontrol(e,n){
+  let over=0;
+  for(let k=0;k<3;k++){
     for(let i=e+1;i<enemy.length;i++){
+      let aim=getEnemyAim(enemy[i].x,enemy[i].y,enemy[e].x,enemy[e].y);
       if(e===i){
         continue;
       }
-      diff.x=enemy[e].x-enemy[i].x
-      diff.y=enemy[e].y-enemy[i].y
-      distance=Math.sqrt(diff.x*diff.x+diff.y*diff.y)
-      if(distance===0){
-        continue;
-      }
-      over=enemy[e].radius+enemy[i].radius-distance;
-      aim.x=diff.x/distance
-      aim.y=diff.y/distance
+      over=enemy[e].radius+enemy[i].radius-aim.length;
       if(over>0){
-        enemy[e].x-=aim.x*over*3/5;
-        enemy[e].y-=aim.y*over*3/5;
-        enemy[i].x+=aim.x*over*3/5;
-        enemy[i].y+=aim.y*over*3/5;
+        enemy[e].x-=aim.x*over/2;
+        enemy[e].y-=aim.y*over/2;
+        enemy[i].x+=aim.x*over/2;
+        enemy[i].y+=aim.y*over/2;
       }
     }
+  }
+  let permission=hitTerrain(enemy[e]);
+  if(!permission){
+    enemy[e].x-=n.x*enemy[e].speed;
+    enemy[e].y-=n.y*enemy[e].speed;
+  }
+}
+
+function drawplayerattack(){
+  if(player[0].directionx!=0&&player[0].directiony!=0){
+    playerattack1={x:player[0].x+(player[0].radius+20)*player[0].directionx,
+                   y:player[0].y+(player[0].radius+20)*player[0].directiony,
+                   radius:20,
+                   damage:1
+                  };
+  }
+  else if(player[0].directionx===0){
+    playerattack1={x:player[0].x,
+                   y:player[0].y+(player[0].radius+20)*player[0].directiony,
+                   radius:20,
+                   damage:1
+                  };
+  }
+  else{
+    playerattack1={x:player[0].x+(player[0].radius+20)*player[0].directionx,
+                   y:player[0].y,
+                   radius:20,
+                   damage:1
+                  };
+  }
+  if(playerattack1timecounter>=120) playerattack1timecounter=0;
+  if(playerattack1timecounter<30){
+    if(keyIsDown(69)){
+      if(playerattack1timecounter===0){
+      fill(0)
+//      console.log("attack1");
+        playerattack1timecounter+=1
+      }
+      strokeWeight(0);
+      fill(255,0,0);
+      rect(playerattack1.x-playerattack1.radius-cameramove.x,
+           playerattack1.y-playerattack1.radius-cameramove.y,
+           playerattack1.radius*2);
+    }
+  }
+  if(playerattack1timecounter!=0) playerattack1timecounter+=1;
+}
+
+function drawenemyattack(){
+  for(let e=0;e<enemy.length;e++){
+    if(enemyattack1timecounter[e]>=180) enemyattack1timecounter[e]=0;
+    let aim=getEnemyAim(enemy[e].x,enemy[e].y,player[0].x,player[0].y);
+    if(enemyattack1timecounter[e]===0&&aim.length<=enemy[e].distance+80){
+      enemyattack1.push({x:enemy[e].x,y:enemy[e].y,radius:8,speed:2,damage:1,vectorx:aim.x,vectory:aim.y,life:120});
+      enemyattack1timecounter[e]+=1;
+    }
+    if(enemyattack1timecounter[e]!=0) enemyattack1timecounter[e]+=1;
+  }
+  for(let i=enemyattack1.length-1;i>=0;i--){
+    enemyattack1[i].x=enemyattack1[i].x+enemyattack1[i].vectorx*enemyattack1[i].speed;
+    enemyattack1[i].y=enemyattack1[i].y+enemyattack1[i].vectory*enemyattack1[i].speed;
+    enemyattack1[i].life-=1
+    strokeWeight(0);
+    stroke(0);
+    fill(40,255,60);
+    ellipse(enemyattack1[i].x-cameramove.x,enemyattack1[i].y-cameramove.y,enemyattack1[i].radius*2);
+    if(enemyattack1[i].life<=0) enemyattack1.splice(i,1);
+  }
+}
+
+function drawplayerhit(){
+  for(let i=enemyattack1.length-1;i>=0;i--){
+    if(player[0].invincible===0){
+      let forward=getEnemyAim(player[0].x,player[0].y,enemyattack1[i].x,enemyattack1[i].y)
+      if(forward.length<player[0].radius+enemyattack1[i].radius){
+        player[0].invincible=60
+        playertakeattack(i);
+      }
+    }
+  }
+  if(player[0].invincible!=0) player[0].invincible-=1
+}
+
+function drawenemyhit(){
+  for(let e=0;e<enemy.length;e++){
+    if(playerattack1timecounter>0&&playerattack1timecounter<30&&enemy[e].invincible===0){
+      let forward=getEnemyAim(enemy[e].x,enemy[e].y,playerattack1.x,playerattack1.y)
+      if(forward.length<enemy[e].radius+playerattack1.radius){
+        enemy[e].invincible=enemy[e].invincibletime;
+        enemytakeattack(e);
+      }
+    }
+    if(enemy[e].invincible!=0) enemy[e].invincible-=1;
+  }
+}
+
+function playertakeattack(i){
+//  console.log("player,takeattack")
+  player[0].hp-=enemyattack1[i].damage;
+  enemyattack1.splice(i,1);
+  if(player[0].hp<=0){
+//    console.log("player,die");
+  }
+}
+
+function enemytakeattack(e){
+//  console.log("enemy,takeattack");
+  enemy[e].hp-=playerattack1.damage;
+//  console.log("enemy"+e+","+enemy[e].hp)
+  if(enemy[e].hp<=0){
+//    console.log("enemy"+e+","+"die")
+  }
+}
+
+function drawsplicebullet(){
+  for(let i=enemyattack1.length-1;i>=0;i--){
+    let permission=hitTerrain(enemyattack1[i]);
+    if(!permission) enemyattack1.splice(i,1);
   }
 }
