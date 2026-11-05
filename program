@@ -142,8 +142,9 @@ function hitTerrain(circle){
 }
 
 function creategrid(){
-  for(let n=1;n<cols+1;n++){
-    for(let m=1;m<rows+1;m++){
+  for(let n=1;n<rows+1;n++){
+    grid.push([]);
+    for(let m=1;m<cols+1;m++){
       let inside=false;
       Px=n*gridSize*3/2;
       Py=m*gridSize*3/2;
@@ -159,9 +160,9 @@ function creategrid(){
         if(Frag) inside=true;
       }
       if(!inside){
-        grid.push(0);
+        grid[n-1].push(0);
       }
-      else grid.push(1);
+      else grid[n-1].push(1);
     }
   }
 }
@@ -211,30 +212,53 @@ function drawdraw(){
 }
 
 function drawdetectgrid(){
-  let playergrid=floor(player[0].x/gridSize)+floor(player[0].y/gridSize)*cols;
+  let playergrid={cols:floor(player[0].x/gridSize),rows:floor(player[0].y/gridSize),direction:0};
   let griddistance=[];
+  let explorer={cols:playergrid.cols,rows:playergrid.rows};
   //ここでプレイヤーから地形を除く全グリッドへの所要数を調べる
-  for(let i=0;i<grid.length;i++){
-    if(grid[playergrid+1]==0) {
-      griddistance.push(0);
-      if(grid[playergrid+2]==0) griddistance.push(0)
-      else if(grid[playergrid-1]==0) griddistance.push(0)
-    }
+  //鑑識用のオブジェクトexplorerを動かしてプレイヤー地点から全てのグリッドへの所要数を判定する
+  for(let n=0;n<rows;n++){
+    griddistance.push([]);
   }
-
-  
-  for(let i=0;i<grid.length;i++){
-    for(let n=0;n<cols;n++){
-      for(let m=0;m<rols;m++){
-       if(grid[n*m+m]==0) griddistance.push(n*m);
+  let distance=0;
+  let total=0;
+  for(let a=0;a<rows;a++){
+    for(let b=0;b<cols;b++){
+      if(griddistance[a][b]==undefined){
+        total++
       }
     }
   }
-  
-  
-  for(let e=0;e<enemy.length;e++){
-    let enemygrid=floor(enemy[e].x/gridSize)+floor(enemy[e].y/gridSize)*cols;
-    //先ほどのデータからどのマスに進むかを判断する
+  while(total>0){
+    if(playergrid.direction==0) explorer={cols:playergrid.cols,rows:playergrid.rows-1};
+    if(playergrid.direction==1) explorer={cols:playergrid.cols+1,rows:playergrid.rows};
+    if(playergrid.direction==2) explorer={cols:playergrid.cols,rows:playergrid.rows+1};
+    if(playergrid.direction==3) explorer={cols:playergrid.cols-1,rows:playergrid.rows};
+    if(explorer.rows>0&&explorer.rows<rows&&explorer.cols>0&&explorer.cols<cols){
+      if(grid[explorer.rows][explorer.cols]==0){
+        playergrid={cols:explorer.cols,rows:explorer.rows,direction:playergrid.direction};
+        distance++
+        if(griddistance[explorer.rows][explorer.cols]==undefined){
+          griddistance[explorer.rows][explorer.cols]=distance;
+          total--
+        }
+      }
+      else playergrid.direction=(playergrid.direction+1)%4
+    }
+    else{
+      playergrid.direction=(playergrid.direction+1)%4
+    }
+    
+    //if(explorer.rows>0) playergrid.direction=2;
+    //else if(explorer.rows<rows-1) playergrid.direction=0;
+    //else if(explorer.cols>0) playergrid.direction=1;
+    //else if(explorer.cols<cols-1) playergrid.direction=3;
+  }
+  if(total==0){
+    for(let e=0;e<enemy.length;e++){
+      let enemygrid={cols:floor(enemy[e].x/gridSize),rows:floor(enemy[e].y/gridSize)};
+      //先ほどのデータからどのマスに進むかを判断する
+    }
   }
 }
 
